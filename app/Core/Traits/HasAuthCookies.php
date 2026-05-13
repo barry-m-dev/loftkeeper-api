@@ -45,7 +45,7 @@ trait HasAuthCookies
       config('session.secure', false), // true en production (HTTPS)
       true, // httpOnly = true (sécurité : inaccessible en JS)
       true, // raw = true (pas de chiffrement Laravel, token Sanctum suffit)
-      config('session.same_site', 'lax')
+      config('session.same_site', 'none') // none pour cross-domain (Vercel <-> Railway)
     );
   }
 
