@@ -42,10 +42,10 @@ trait HasAuthCookies
       $minutes > 0 ? now()->addMinutes($minutes) : 0,
       '/',
       config('session.domain'),
-      config('session.secure', false), // true en production (HTTPS)
+      filter_var(env('SESSION_SECURE_COOKIE', false), FILTER_VALIDATE_BOOLEAN), // Lit directement depuis env
       true, // httpOnly = true (sécurité : inaccessible en JS)
       true, // raw = true (pas de chiffrement Laravel, token Sanctum suffit)
-      config('session.same_site', 'lax')
+      env('SESSION_SAME_SITE', 'lax') // Lit directement depuis env
     );
   }
 
