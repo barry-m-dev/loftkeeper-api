@@ -1,0 +1,11 @@
+{
+    "name": "Sorties",
+    "alias": "sorties",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Sorties\\Providers\\SortiesServiceProvider"
+    ],
+    "files": []
+}

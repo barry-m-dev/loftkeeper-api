@@ -1,0 +1,11 @@
+{
+    "name": "Reproductions",
+    "alias": "reproductions",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Reproductions\\Providers\\ReproductionsServiceProvider"
+    ],
+    "files": []
+}

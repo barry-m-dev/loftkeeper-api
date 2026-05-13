@@ -1,0 +1,11 @@
+{
+    "name": "Couples",
+    "alias": "couples",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Couples\\Providers\\CouplesServiceProvider"
+    ],
+    "files": []
+}

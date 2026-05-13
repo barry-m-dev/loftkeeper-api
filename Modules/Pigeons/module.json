@@ -1,0 +1,11 @@
+{
+    "name": "Pigeons",
+    "alias": "pigeons",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Pigeons\\Providers\\PigeonsServiceProvider"
+    ],
+    "files": []
+}

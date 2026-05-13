@@ -1,0 +1,3 @@
+[deploy]
+startCommand = "php artisan migrate --force && frankenphp run --config /Caddyfile"
+healthcheckPath = "/up"

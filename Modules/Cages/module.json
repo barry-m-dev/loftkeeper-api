@@ -1,0 +1,11 @@
+{
+    "name": "Cages",
+    "alias": "cages",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Cages\\Providers\\CagesServiceProvider"
+    ],
+    "files": []
+}

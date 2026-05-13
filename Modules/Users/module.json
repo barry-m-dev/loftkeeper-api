@@ -1,0 +1,17 @@
+{
+    "name": "Users",
+    "alias": "users",
+    "description": "Module de gestion des utilisateurs et authentification",
+    "keywords": [
+        "users",
+        "authentication",
+        "auth",
+        "otp",
+        "sanctum"
+    ],
+    "priority": 1,
+    "providers": [
+        "Modules\\Users\\Providers\\UsersServiceProvider"
+    ],
+    "files": []
+}

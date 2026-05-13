@@ -1,0 +1,30 @@
+{
+    "name": "nwidart/pigeons",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\Pigeons\\": "app/",
+            "Modules\\Pigeons\\Database\\Factories\\": "database/factories/",
+            "Modules\\Pigeons\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\Pigeons\\Tests\\": "tests/"
+        }
+    }
+}

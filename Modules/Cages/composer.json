@@ -1,0 +1,30 @@
+{
+    "name": "nwidart/cages",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\Cages\\": "app/",
+            "Modules\\Cages\\Database\\Factories\\": "database/factories/",
+            "Modules\\Cages\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\Cages\\Tests\\": "tests/"
+        }
+    }
+}
