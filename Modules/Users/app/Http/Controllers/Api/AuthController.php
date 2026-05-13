@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Modules\Users\Http\Controllers\Api;
 
 use App\Core\Traits\ApiResponse;
-use App\Core\Traits\HasAuthCookies;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -39,7 +38,7 @@ use Modules\Users\Services\AuthService;
  */
 class AuthController extends Controller
 {
-  use ApiResponse, HasAuthCookies;
+  use ApiResponse;
 
   private const LOGIN_RATE_LIMIT = 5;
   private const OTP_RATE_LIMIT = 5;
@@ -122,16 +121,12 @@ class AuthController extends Controller
       // Créer les tokens
       $tokens = $this->authService->createAuthTokens($user);
 
-      $response = $this->success([
+      return $this->success([
         'user' => $this->authService->getUserData($user),
+        'access_token' => $tokens['access_token'],
+        'refresh_token' => $tokens['refresh_token'],
         'two_factor_required' => false,
       ], 'Connexion réussie.');
-
-      return $this->withAuthCookies(
-        $response,
-        $tokens['access_token'],
-        $tokens['refresh_token']
-      );
     }
 
     // Sinon, envoyer le code OTP
@@ -198,16 +193,12 @@ class AuthController extends Controller
     // Créer les tokens (access + refresh)
     $tokens = $this->authService->createAuthTokens($user);
 
-    // Retourner user sans token dans le body (tokens dans cookies HttpOnly)
-    $response = $this->success([
+    // Retourner user + tokens dans le body
+    return $this->success([
       'user' => $this->authService->getUserData($user),
+      'access_token' => $tokens['access_token'],
+      'refresh_token' => $tokens['refresh_token'],
     ], 'Authentification réussie.');
-
-    return $this->withAuthCookies(
-      $response,
-      $tokens['access_token'],
-      $tokens['refresh_token']
-    );
   }
 
   /**
@@ -270,9 +261,7 @@ class AuthController extends Controller
       Log::warning('Logout - No authenticated user found');
     }
 
-    $response = $this->success(null, 'Déconnexion réussie.');
-
-    return $this->forgetAuthCookies($response);
+    return $this->success(null, 'Déconnexion réussie.');
   }
 
   /**
@@ -292,23 +281,21 @@ class AuthController extends Controller
   }
 
   /**
-   * Rafraîchit le token d'authentification via refresh_token cookie
+   * Rafraîchit le token d'authentification via refresh_token dans Authorization header
    */
   public function refresh(Request $request): JsonResponse
   {
-    $refreshToken = $request->cookie('refresh_token');
+    $refreshToken = $request->bearerToken();
 
     if (!$refreshToken) {
-      $response = $this->unauthorized('Session expirée. Veuillez vous reconnecter.');
-      return $this->forgetAuthCookies($response);
+      return $this->unauthorized('Session expirée. Veuillez vous reconnecter.');
     }
 
     // Valider le refresh token et obtenir l'utilisateur
     $result = $this->authService->validateRefreshToken($refreshToken);
 
     if (!$result['valid']) {
-      $response = $this->unauthorized($result['error']);
-      return $this->forgetAuthCookies($response);
+      return $this->unauthorized($result['error']);
     }
 
     $user = $result['user'];
@@ -319,15 +306,11 @@ class AuthController extends Controller
     // Créer de nouveaux tokens
     $tokens = $this->authService->createAuthTokens($user);
 
-    $response = $this->success([
+    return $this->success([
       'user' => $this->authService->getUserData($user),
+      'access_token' => $tokens['access_token'],
+      'refresh_token' => $tokens['refresh_token'],
     ], 'Session renouvelée avec succès.');
-
-    return $this->withAuthCookies(
-      $response,
-      $tokens['access_token'],
-      $tokens['refresh_token']
-    );
   }
 
   /**

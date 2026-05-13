@@ -12,21 +12,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // Middleware API - Authentification via cookie HttpOnly
+        // Middleware API - Authentification via Bearer token
         $middleware->api(prepend: [
-            \App\Http\Middleware\ConvertCookieToBearer::class,
-            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+            // Sanctum gère automatiquement les Bearer tokens
         ]);
 
         // Désactiver CSRF pour les routes API
         $middleware->validateCsrfTokens(except: [
             'api/*',
-        ]);
-
-        // Configurer l'encryption des cookies
-        $middleware->encryptCookies(except: [
-            'access_token',
-            'refresh_token',
         ]);
 
         // Alias de middlewares personnalisés
