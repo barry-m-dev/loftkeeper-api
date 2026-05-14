@@ -2,8 +2,10 @@
 
 namespace App\Providers;
 
+use App\Mail\Transport\BrevoTransport;
 use App\Policies\CagePolicy;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Sanctum\Sanctum;
@@ -29,5 +31,10 @@ class AppServiceProvider extends ServiceProvider
 
         // Enregistrer les policies
         Gate::policy(Cage::class, CagePolicy::class);
+
+        // Enregistrer le transport Brevo
+        Mail::extend('brevo', function () {
+            return new BrevoTransport(config('services.brevo.key'));
+        });
     }
 }
