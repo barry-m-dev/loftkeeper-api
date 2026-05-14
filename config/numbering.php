@@ -22,7 +22,7 @@ return [
     'prefix' => 'P',
     'digits' => 4,
     'max'    => 9999,
-    'model'  => \App\Models\Pigeon::class,
+    'model'  => \Modules\Pigeons\Models\Pigeon::class,
     'column' => 'bague',
   ],
 
@@ -30,7 +30,7 @@ return [
     'prefix' => 'C',
     'digits' => 3,
     'max'    => 999,
-    'model'  => \App\Models\Cage::class,
+    'model'  => \Modules\Cages\Models\Cage::class,
     'column' => 'numero',
   ],
 
@@ -38,7 +38,7 @@ return [
     'prefix' => 'CP',
     'digits' => 3,
     'max'    => 999,
-    'model'  => \App\Models\Couple::class,
+    'model'  => \Modules\Couples\Models\Couple::class,
     'column' => 'code',
   ],
 ];

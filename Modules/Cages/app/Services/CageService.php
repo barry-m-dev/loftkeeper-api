@@ -7,12 +7,19 @@ use Modules\Pigeons\Models\Pigeon;
 use Modules\Couples\Models\Couple;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use App\Services\NumberingService;
 
 /**
  * Service pour la gestion de la logique métier des cages
  */
 class CageService
 {
+  protected NumberingService $numberingService;
+
+  public function __construct(NumberingService $numberingService)
+  {
+    $this->numberingService = $numberingService;
+  }
   /**
    * Récupérer toutes les cages avec filtres
    *
@@ -46,16 +53,17 @@ class CageService
    * Obtenir les statistiques des cages
    *
    * @param Collection|null $cages
+   * @param int $userId
    * @return array
    */
-  public function getStats(?Collection $cages = null): array
+  public function getStats(?Collection $cages = null, int $userId = null): array
   {
     if ($cages === null) {
       $cages = Cage::all();
     }
 
-    $lastCage = Cage::orderBy('numero', 'desc')->first();
-    $nextNumero = $this->getNextNumero();
+    $lastCage = Cage::where('user_id', $userId)->orderBy('numero', 'desc')->first();
+    $nextNumero = $userId ? $this->numberingService->generateCageNumero($userId) : null;
 
     return [
       'total' => $cages->count(),
@@ -68,37 +76,15 @@ class CageService
   }
 
   /**
-   * Générer le prochain numéro de cage
-   * Utilise withTrashed() pour continuer la numérotation même après soft delete
-   *
-   * @return string
-   */
-  public function getNextNumero(): string
-  {
-    $lastCage = Cage::withTrashed()->orderBy('numero', 'desc')->first();
-
-    if (!$lastCage) {
-      return 'C001';
-    }
-
-    // Extraire le nombre du numéro (C001 -> 1)
-    $lastNumber = (int) substr($lastCage->numero, 1);
-    $nextNumber = $lastNumber + 1;
-
-    // Formater avec padding (1 -> C001)
-    return 'C' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
-  }
-
-  /**
    * Créer une nouvelle cage
    *
    * @param array $data
-   * @param string $userId
+   * @param int $userId
    * @return Cage
    */
-  public function createCage(array $data, string $userId): Cage
+  public function createCage(array $data, int $userId): Cage
   {
-    $data['numero'] = $this->getNextNumero();
+    $data['numero'] = $this->numberingService->generateCageNumero($userId);
     $data['user_id'] = $userId;
     $data['statut'] = 'LIBRE';
     $data['uuid'] = Str::uuid()->toString();

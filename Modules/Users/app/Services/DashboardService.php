@@ -37,6 +37,7 @@ class DashboardService
   {
     $cages = DB::table('cages')
       ->where('user_id', $userId)
+      ->whereNull('deleted_at')
       ->select('statut', DB::raw('COUNT(*) as count'))
       ->groupBy('statut')
       ->get()
@@ -86,6 +87,7 @@ class DashboardService
     $couplesActifs = DB::table('couples')
       ->where('user_id', $userId)
       ->where('statut', 'ACTIF')
+      ->whereNull('deleted_at')
       ->count();
 
     // Reproductions par statut (uniquement pour couples actifs)
@@ -93,6 +95,8 @@ class DashboardService
       ->join('couples', 'reproductions.couple_id', '=', 'couples.id')
       ->where('couples.user_id', $userId)
       ->where('couples.statut', 'ACTIF')
+      ->whereNull('couples.deleted_at')
+      ->whereNull('reproductions.deleted_at')
       ->select('reproductions.statut', DB::raw('COUNT(DISTINCT reproductions.id) as count'))
       ->whereIn('reproductions.statut', ['PONTE', 'ECLOSION', 'SEVRAGE'])
       ->groupBy('reproductions.statut')
@@ -119,6 +123,8 @@ class DashboardService
       ->join('pigeons', 'sorties.pigeon_id', '=', 'pigeons.id')
       ->where('pigeons.user_id', $userId)
       ->where('sorties.type', 'VENTE')
+      ->whereNull('sorties.deleted_at')
+      ->whereNull('pigeons.deleted_at')
       ->select(
         DB::raw('COUNT(*) as nombre'),
         DB::raw('COALESCE(SUM(sorties.prix), 0) as total_prix')
@@ -150,11 +156,14 @@ class DashboardService
     $totalOeufs = DB::table('reproductions')
       ->join('couples', 'reproductions.couple_id', '=', 'couples.id')
       ->where('couples.user_id', $userId)
+      ->whereNull('couples.deleted_at')
+      ->whereNull('reproductions.deleted_at')
       ->sum('reproductions.nb_oeufs');
 
     // Total cages
     $totalCages = DB::table('cages')
       ->where('user_id', $userId)
+      ->whereNull('deleted_at')
       ->count();
 
     return [
@@ -175,6 +184,7 @@ class DashboardService
     // Récupérer les pigeons ajoutés dans les 7 derniers jours
     $pigeonsParJour = DB::table('pigeons')
       ->where('user_id', $userId)
+      ->whereNull('deleted_at')
       ->where('created_at', '>=', Carbon::now()->subDays(7)->startOfDay())
       ->select(
         DB::raw('DATE(created_at) as date'),

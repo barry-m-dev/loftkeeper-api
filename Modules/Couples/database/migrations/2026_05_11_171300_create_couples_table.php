@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('couples', function (Blueprint $table) {
             $table->id();
             $table->uuid('uuid')->unique();
-            $table->string('code', 20)->unique();
+            $table->string('code', 20);
             $table->foreignId('male_id')->constrained('pigeons')->cascadeOnDelete();
             $table->foreignId('femelle_id')->constrained('pigeons')->cascadeOnDelete();
             $table->foreignId('cage_id')->nullable()->constrained('cages')->nullOnDelete();
@@ -31,6 +31,9 @@ return new class extends Migration
             $table->index('statut');
             $table->index(['male_id', 'femelle_id']);
             $table->index('user_id');
+
+            // Contrainte unique composite : un code de couple est unique par utilisateur
+            $table->unique(['user_id', 'code'], 'couples_user_code_unique');
         });
     }
 

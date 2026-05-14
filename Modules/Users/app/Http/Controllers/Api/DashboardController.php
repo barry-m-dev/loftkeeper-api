@@ -37,8 +37,8 @@ class DashboardController extends Controller
     } catch (\Exception $e) {
       return $this->error(
         'Erreur lors de la récupération des KPIs',
-        500,
-        ['error' => $e->getMessage()]
+        'kpis_error',
+        500
       );
     }
   }

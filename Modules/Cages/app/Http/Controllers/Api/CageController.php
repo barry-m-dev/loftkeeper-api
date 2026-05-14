@@ -48,7 +48,7 @@ class CageController extends Controller
     try {
       $filters = $request->only(['statut', 'search']);
       $cages = $this->cageService->getAllCages($filters);
-      $stats = $this->cageService->getStats($cages);
+      $stats = $this->cageService->getStats($cages, auth()->id());
 
       \Log::info('Cages index', [
         'filters' => $filters,

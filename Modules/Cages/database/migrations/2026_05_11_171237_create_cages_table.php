@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('cages', function (Blueprint $table) {
             $table->id();
             $table->uuid('uuid')->unique();
-            $table->string('numero', 20)->unique();
+            $table->string('numero', 20);
             $table->string('nom', 100)->nullable();
             $table->decimal('superficie', 5, 2)->nullable();
             $table->enum('statut', ['LIBRE', 'OCCUPE_PIGEON', 'OCCUPE_COUPLE'])->default('LIBRE');
@@ -27,6 +27,9 @@ return new class extends Migration
             $table->index('numero');
             $table->index('statut');
             $table->index('user_id');
+
+            // Contrainte unique composite : un numéro de cage est unique par utilisateur
+            $table->unique(['user_id', 'numero'], 'cages_user_numero_unique');
         });
     }
 
