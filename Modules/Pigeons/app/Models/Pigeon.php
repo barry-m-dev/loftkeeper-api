@@ -47,7 +47,7 @@ class Pigeon extends Model
     /**
      * The accessors to append to the model's array form.
      */
-    protected $appends = ['photo_url'];
+    protected $appends = ['age', 'is_disponible', 'statut_disponibilite'];
 
     /**
      * Boot function pour générer UUID automatiquement
@@ -61,6 +61,34 @@ class Pigeon extends Model
                 $pigeon->uuid = (string) Str::uuid();
             }
         });
+    }
+
+    /**
+     * Accesseur : Calculer le statut de disponibilité dynamique du pigeon
+     * 
+     * Logique :
+     * - Si cage_id existe → EN_CAGE
+     * - Si dans un couple actif → EN_COUPLE
+     * - Sinon → DISPONIBLE
+     * 
+     * Note : Ceci est différent de la colonne 'statut' (ACTIF/VENDU/MORT/PERDU)
+     * 
+     * @return string
+     */
+    public function getStatutDisponibiliteAttribute(): string
+    {
+        // Si le pigeon est dans une cage
+        if (!is_null($this->cage_id)) {
+            return 'EN_CAGE';
+        }
+
+        // Si le pigeon est dans un couple actif
+        if ($this->hasCouple()) {
+            return 'EN_COUPLE';
+        }
+
+        // Sinon, le pigeon est disponible
+        return 'DISPONIBLE';
     }
 
     /**
@@ -177,5 +205,66 @@ class Pigeon extends Model
         return $this->photo
             ? \Storage::url($this->photo)
             : asset('images/default-pigeon.png');
+    }
+
+    /**
+     * Accesseur : Calculer l'âge du pigeon en années
+     */
+    public function getAgeAttribute(): ?int
+    {
+        if (!$this->date_naissance) {
+            return null;
+        }
+
+        return $this->date_naissance->diffInYears(now());
+    }
+
+    /**
+     * Accesseur : Vérifier si le pigeon est disponible pour un couple
+     */
+    public function getIsDisponibleAttribute(): bool
+    {
+        if ($this->statut !== 'ACTIF') {
+            return false;
+        }
+
+        // Vérifier si le pigeon n'est pas déjà dans un couple actif
+        $hasActiveCouple = $this->couplesMale()->exists() || $this->couplesFemelle()->exists();
+
+        return !$hasActiveCouple;
+    }
+
+    // ==================== MÉTHODES HELPER ====================
+
+    /**
+     * Vérifier si le pigeon est actif
+     */
+    public function isActif(): bool
+    {
+        return $this->statut === 'ACTIF';
+    }
+
+    /**
+     * Vérifier si le pigeon est dans une cage
+     */
+    public function hasCage(): bool
+    {
+        return !is_null($this->cage_id);
+    }
+
+    /**
+     * Vérifier si le pigeon est dans un couple actif
+     */
+    public function hasCouple(): bool
+    {
+        return $this->couplesMale()->exists() || $this->couplesFemelle()->exists();
+    }
+
+    /**
+     * Vérifier si le pigeon a des enfants
+     */
+    public function hasEnfants(): bool
+    {
+        return $this->enfants()->exists();
     }
 }
