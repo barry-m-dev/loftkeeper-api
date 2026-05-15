@@ -213,9 +213,10 @@ class PigeonService
    */
   public function updatePigeon(Pigeon $pigeon, array $data): Pigeon
   {
-    // Sécurité : ne jamais permettre la modification de la bague et user_id
-    unset($data['bague']);
-    unset($data['user_id']);
+    // Sécurité : ne jamais permettre la modification de la bague / uuid / user_id, ni de l’état élevage (flux sortie / vente)
+    unset($data['bague'], $data['uuid'], $data['user_id'], $data['statut']);
+
+    $pigeon->refresh();
 
     // Gérer l'upload de la photo
     if (isset($data['photo']) && $data['photo'] instanceof \Illuminate\Http\UploadedFile) {
@@ -230,19 +231,25 @@ class PigeonService
       $data['photo'] = $path;
     }
 
-    // Résoudre les UUIDs en IDs
-    if (isset($data['pere_uuid'])) {
-      $data['pere_id'] = Pigeon::withoutGlobalScopes()
-        ->where('uuid', $data['pere_uuid'])
-        ->value('id');
+    // Résoudre les UUIDs en IDs : seulement si une valeur non vide est fournie (sinon on ne touche pas aux FK)
+    if (array_key_exists('pere_uuid', $data)) {
+      $pereUuid = $data['pere_uuid'];
       unset($data['pere_uuid']);
+      if ($pereUuid !== null && $pereUuid !== '') {
+        $data['pere_id'] = Pigeon::withoutGlobalScopes()
+          ->where('uuid', $pereUuid)
+          ->value('id');
+      }
     }
 
-    if (isset($data['mere_uuid'])) {
-      $data['mere_id'] = Pigeon::withoutGlobalScopes()
-        ->where('uuid', $data['mere_uuid'])
-        ->value('id');
+    if (array_key_exists('mere_uuid', $data)) {
+      $mereUuid = $data['mere_uuid'];
       unset($data['mere_uuid']);
+      if ($mereUuid !== null && $mereUuid !== '') {
+        $data['mere_id'] = Pigeon::withoutGlobalScopes()
+          ->where('uuid', $mereUuid)
+          ->value('id');
+      }
     }
 
     if (isset($data['cage_uuid'])) {
@@ -397,6 +404,40 @@ class PigeonService
       ->with('cage')
       ->orderBy('bague')
       ->get();
+  }
+
+  /**
+   * Contexte parents pour l’édition d’un pigeon (voir endpoint for-parent-edit).
+   *
+   * @return array{
+   *   pere: \Modules\Pigeons\Models\Pigeon|null,
+   *   mere: \Modules\Pigeons\Models\Pigeon|null,
+   *   candidats_males: \Illuminate\Support\Collection,
+   *   candidats_femelles: \Illuminate\Support\Collection
+   * }
+   */
+  public function getParentEditContext(Pigeon $subject): array
+  {
+    $subject->loadMissing(['pere', 'mere']);
+
+    $males = Pigeon::query()
+      ->where('id', '!=', $subject->id)
+      ->where('sexe', 'MALE')
+      ->orderBy('bague', 'desc')
+      ->get();
+
+    $femelles = Pigeon::query()
+      ->where('id', '!=', $subject->id)
+      ->where('sexe', 'FEMELLE')
+      ->orderBy('bague', 'desc')
+      ->get();
+
+    return [
+      'pere' => $subject->pere,
+      'mere' => $subject->mere,
+      'candidats_males' => $males,
+      'candidats_femelles' => $femelles,
+    ];
   }
 
   /**

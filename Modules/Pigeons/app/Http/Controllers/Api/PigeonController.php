@@ -269,6 +269,40 @@ class PigeonController extends Controller
   }
 
   /**
+   * Contexte sélection parents à l’édition : parents actuels + listes de candidats
+   * (tous états, comme for-parents) hors le pigeon lui-même.
+   */
+  public function forParentEdit(string $uuid): JsonResponse
+  {
+    try {
+      $pigeon = Pigeon::where('uuid', $uuid)->firstOrFail();
+      $ctx = $this->pigeonService->getParentEditContext($pigeon);
+
+      $serialize = static function ($model) {
+        return $model ? (new PigeonResource($model))->resolve() : null;
+      };
+
+      return $this->success([
+        'pere' => $serialize($ctx['pere'] ?? null),
+        'mere' => $serialize($ctx['mere'] ?? null),
+        'candidats_males' => PigeonResource::collection($ctx['candidats_males'])->resolve(),
+        'candidats_femelles' => PigeonResource::collection($ctx['candidats_femelles'])->resolve(),
+      ]);
+    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+      return $this->notFound('Pigeon non trouvé.');
+    } catch (\Exception $e) {
+      \Log::error('Erreur forParentEdit pigeon', [
+        'uuid' => $uuid,
+        'message' => $e->getMessage(),
+      ]);
+      return $this->error(
+        'Erreur lors de la récupération du contexte parents: ' . substr($e->getMessage(), 0, 300),
+        500
+      );
+    }
+  }
+
+  /**
    * Tous les pigeons pour sélection de parents (incluant morts/vendus/perdus)
    * 
    * @param Request $request

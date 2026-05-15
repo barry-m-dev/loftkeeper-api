@@ -15,6 +15,8 @@ Route::middleware(['auth:sanctum'])->prefix('v1')->group(function () {
         Route::post('/', [PigeonController::class, 'store'])->name('pigeons.store');
         Route::get('/disponibles', [PigeonController::class, 'disponibles'])->name('pigeons.disponibles');
         Route::get('/for-parents', [PigeonController::class, 'forParents'])->name('pigeons.forParents');
+        Route::get('/{uuid}/for-parent-edit', [PigeonController::class, 'forParentEdit'])
+            ->name('pigeons.forParentEdit');
         Route::get('/{uuid}', [PigeonController::class, 'show'])->name('pigeons.show');
         Route::put('/{uuid}', [PigeonController::class, 'update'])->name('pigeons.update');
         Route::delete('/{uuid}', [PigeonController::class, 'destroy'])->name('pigeons.destroy');
