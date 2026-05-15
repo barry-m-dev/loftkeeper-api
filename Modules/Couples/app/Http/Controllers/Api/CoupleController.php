@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Modules\Couples\Http\Resources\CoupleResource;
 use Modules\Couples\Models\Couple;
 
 /**
@@ -59,7 +60,7 @@ class CoupleController extends Controller
       ];
 
       return $this->success([
-        'data' => $couples,
+        'data' => CoupleResource::collection($couples)->resolve(),
         'meta' => $stats,
       ]);
     } catch (\Exception $e) {
@@ -88,7 +89,9 @@ class CoupleController extends Controller
         ->with(['male', 'femelle', 'cage', 'reproductions'])
         ->firstOrFail();
 
-      return $this->success(['data' => $couple]);
+      return $this->success([
+        'data' => (new CoupleResource($couple))->resolve(),
+      ]);
     } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
       return $this->error('Couple non trouvé', 404);
     } catch (\Exception $e) {

@@ -43,12 +43,23 @@ class CageResource extends JsonResource
     }
 
     if ($this->statut === 'OCCUPE_PIGEON' && $this->pigeon) {
+      $p = $this->pigeon;
       return [
         'type' => 'pigeon',
-        'uuid' => $this->pigeon->uuid,
-        'label' => $this->pigeon->bague ?? 'Pigeon',
-        'detail' => $this->pigeon->nom ?? null,
-        'photo_url' => $this->pigeon->photo_url ?? null,
+        'uuid' => $p->uuid,
+        'label' => $p->bague ?? 'Pigeon',
+        'detail' => $p->nom ?? null,
+        'photo_url' => $p->photo
+          ? \Storage::disk('public')->url($p->photo)
+          : null,
+        'bague' => $p->bague,
+        'nom' => $p->nom,
+        'sexe' => $p->sexe,
+        'race' => $p->race,
+        'couleur' => $p->couleur,
+        'bague_physique' => $p->bague_physique,
+        'age' => $p->age,
+        'statut' => $p->statut_disponibilite,
       ];
     }
 

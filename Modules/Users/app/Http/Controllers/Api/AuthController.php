@@ -281,13 +281,20 @@ class AuthController extends Controller
   }
 
   /**
-   * Rafraîchit le token d'authentification via refresh_token dans Authorization header
+   * Rafraîchit le token d'authentification.
+   * Accepte le refresh token en Authorization Bearer (recommandé) ou en JSON { "refresh_token": "..." }.
    */
   public function refresh(Request $request): JsonResponse
   {
-    $refreshToken = $request->bearerToken();
+    $refreshToken = $request->bearerToken()
+      ?: $request->input('refresh_token');
 
-    if (!$refreshToken) {
+    if (!$refreshToken || !is_string($refreshToken)) {
+      return $this->unauthorized('Session expirée. Veuillez vous reconnecter.');
+    }
+
+    $refreshToken = trim($refreshToken);
+    if ($refreshToken === '') {
       return $this->unauthorized('Session expirée. Veuillez vous reconnecter.');
     }
 

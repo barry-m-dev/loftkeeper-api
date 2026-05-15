@@ -14,18 +14,42 @@ use Modules\Cages\Http\Resources\CageResource;
 class PigeonResource extends JsonResource
 {
   /**
+   * URL publique de la photo (disque `public`) ou null si aucune image enregistrée.
+   * Aligné sur le front : pas d'URL « défaut » serveur ici — le placeholder est géré côté client.
+   */
+  protected function publicPhotoUrl(): ?string
+  {
+    $path = $this->photo;
+    if ($path === null || $path === '') {
+      return null;
+    }
+    if (!is_string($path)) {
+      return null;
+    }
+    $path = trim($path);
+    if ($path === '') {
+      return null;
+    }
+
+    return \Storage::disk('public')->url($path);
+  }
+
+  /**
    * Transform the resource into an array.
    *
    * @return array<string, mixed>
    */
   public function toArray(Request $request): array
   {
+    $photoUrl = $this->publicPhotoUrl();
+
     return [
       'uuid' => $this->uuid,
       'bague' => $this->bague,
       'bague_physique' => $this->bague_physique,
       'nom' => $this->nom,
-      'photo' => $this->photo ? \Storage::url($this->photo) : null,
+      'photo' => $photoUrl,
+      'photo_url' => $photoUrl,
       'sexe' => $this->sexe,
       'date_naissance' => $this->date_naissance?->format('Y-m-d'),
       'age' => $this->age,
