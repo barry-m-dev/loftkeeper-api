@@ -337,4 +337,124 @@ class PigeonController extends Controller
       );
     }
   }
+
+  /**
+   * Historique complet d'un pigeon (timeline)
+   * Retourne : couples, reproductions, sortie, dates clés
+   *
+   * @param string $uuid
+   * @return JsonResponse
+   */
+  public function historique(string $uuid): JsonResponse
+  {
+    try {
+      $pigeon = Pigeon::where('uuid', $uuid)
+        ->where('user_id', auth()->id())
+        ->firstOrFail();
+
+      // ── Couples (tous, pas seulement actifs) ──
+      $couples = \Modules\Couples\Models\Couple::with(['male:id,uuid,bague,nom', 'femelle:id,uuid,bague,nom', 'cage:id,uuid,numero,nom'])
+        ->where(function ($q) use ($pigeon) {
+          $q->where('male_id', $pigeon->id)
+            ->orWhere('femelle_id', $pigeon->id);
+        })
+        ->orderBy('created_at', 'desc')
+        ->get()
+        ->map(function ($couple) {
+          return [
+            'uuid' => $couple->uuid,
+            'code' => $couple->code,
+            'statut' => $couple->statut,
+            'date_formation' => $couple->date_formation,
+            'date_rupture' => $couple->date_rupture,
+            'created_at' => $couple->created_at,
+            'male' => $couple->male ? [
+              'uuid' => $couple->male->uuid,
+              'bague' => $couple->male->bague,
+              'nom' => $couple->male->nom,
+            ] : null,
+            'femelle' => $couple->femelle ? [
+              'uuid' => $couple->femelle->uuid,
+              'bague' => $couple->femelle->bague,
+              'nom' => $couple->femelle->nom,
+            ] : null,
+            'cage' => $couple->cage ? [
+              'uuid' => $couple->cage->uuid,
+              'numero' => $couple->cage->numero,
+              'nom' => $couple->cage->nom,
+            ] : null,
+          ];
+        });
+
+      // ── Reproductions (via couples de ce pigeon) ──
+      $coupleIds = \Modules\Couples\Models\Couple::where(function ($q) use ($pigeon) {
+        $q->where('male_id', $pigeon->id)
+          ->orWhere('femelle_id', $pigeon->id);
+      })->pluck('id');
+
+      $reproductions = \Modules\Reproductions\Models\Reproduction::with(['couple:id,uuid,code'])
+        ->whereIn('couple_id', $coupleIds)
+        ->orderBy('date_ponte', 'desc')
+        ->get()
+        ->map(function ($r) {
+          return [
+            'uuid' => $r->uuid,
+            'couple_code' => $r->couple?->code,
+            'statut' => $r->statut,
+            'nb_oeufs' => $r->nb_oeufs,
+            'nb_pigeonneaux' => $r->nb_pigeonneaux,
+            'date_ponte' => $r->date_ponte,
+            'date_eclosion' => $r->date_eclosion,
+            'date_sevrage' => $r->date_sevrage,
+            'created_at' => $r->created_at,
+          ];
+        });
+
+      // ── Enfants (pigeonneaux) ──
+      $enfants = Pigeon::withoutGlobalScopes()
+        ->where(function ($q) use ($pigeon) {
+          $q->where('pere_id', $pigeon->id)
+            ->orWhere('mere_id', $pigeon->id);
+        })
+        ->select('uuid', 'bague', 'nom', 'sexe', 'date_naissance', 'statut', 'created_at')
+        ->orderBy('date_naissance', 'desc')
+        ->get();
+
+      // ── Sortie ──
+      $sortie = $pigeon->sortie;
+      $sortieData = $sortie ? [
+        'uuid' => $sortie->uuid,
+        'type' => $sortie->type,
+        'date_sortie' => $sortie->date_sortie,
+        'prix' => $sortie->prix,
+        'acheteur' => $sortie->acheteur,
+        'cause' => $sortie->cause,
+        'circonstance' => $sortie->circonstance,
+        'notes' => $sortie->notes,
+      ] : null;
+
+      return $this->success([
+        'pigeon' => [
+          'uuid' => $pigeon->uuid,
+          'bague' => $pigeon->bague,
+          'nom' => $pigeon->nom,
+          'sexe' => $pigeon->sexe,
+          'date_naissance' => $pigeon->date_naissance,
+          'created_at' => $pigeon->created_at,
+        ],
+        'couples' => $couples,
+        'reproductions' => $reproductions,
+        'enfants' => $enfants,
+        'sortie' => $sortieData,
+      ]);
+    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+      return $this->notFound('Pigeon non trouvé.');
+    } catch (\Exception $e) {
+      \Log::error('Erreur historique pigeon', [
+        'uuid' => $uuid,
+        'message' => $e->getMessage(),
+      ]);
+      return $this->error('Erreur lors de la récupération de l\'historique: ' . substr($e->getMessage(), 0, 300), 500);
+    }
+  }
 }

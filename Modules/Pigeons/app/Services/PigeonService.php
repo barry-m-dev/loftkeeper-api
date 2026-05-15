@@ -8,6 +8,8 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use App\Services\NumberingService;
+use Modules\Couples\Models\Couple;
+use Modules\Couples\Services\CoupleService;
 
 /**
  * Service pour la gestion de la logique métier des pigeons
@@ -293,7 +295,31 @@ class PigeonService
   public function deletePigeon(Pigeon $pigeon): bool
   {
     // Soft delete uniquement — séquence de bagues préservée
-    return $pigeon->delete();
+    // Synchroniser les disponibilités et le statut
+    return DB::transaction(function () use ($pigeon) {
+      // 1. Libérer la cage
+      if ($pigeon->cage_id) {
+          Cage::where('id', $pigeon->cage_id)->update(['statut' => 'LIBRE']);
+          $pigeon->cage_id = null;
+      }
+
+      // 2. Rompre le couple actif
+      $coupleActif = Couple::where('statut', 'ACTIF')
+          ->where(function ($q) use ($pigeon) {
+              $q->where('male_id', $pigeon->id)
+                ->orWhere('femelle_id', $pigeon->id);
+          })->first();
+
+      if ($coupleActif) {
+          app(CoupleService::class)->rompre($coupleActif);
+      }
+
+      // 3. Mettre à jour le statut
+      $pigeon->statut = 'PERDU';
+      $pigeon->save();
+
+      return $pigeon->delete();
+    });
   }
 
   /**

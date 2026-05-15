@@ -77,6 +77,10 @@ class Pigeon extends Model
      */
     public function getStatutDisponibiliteAttribute(): string
     {
+        if ($this->statut !== 'ACTIF') {
+            return 'INDISPONIBLE';
+        }
+
         // Si le pigeon est dans une cage
         if (!is_null($this->cage_id)) {
             return 'EN_CAGE';

@@ -23,5 +23,6 @@ Route::middleware(['auth:sanctum'])->prefix('v1')->group(function () {
 
         // Actions métier
         Route::get('/{uuid}/genealogy', [PigeonController::class, 'genealogy'])->name('pigeons.genealogy');
+        Route::get('/{uuid}/historique', [PigeonController::class, 'historique'])->name('pigeons.historique');
     });
 });
