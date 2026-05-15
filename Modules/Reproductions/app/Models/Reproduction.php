@@ -52,20 +52,62 @@ class Reproduction extends Model
                 $reproduction->uuid = (string) Str::uuid();
             }
         });
+
+        // Appliquer un scope global pour ne voir que les reproductions de ses propres couples
+        if (auth()->check()) {
+            static::addGlobalScope('user_reproductions', function (\Illuminate\Database\Eloquent\Builder $builder) {
+                $builder->whereHas('couple');
+            });
+        }
     }
 
     /**
      * Relation : Une reproduction appartient à un couple
+     * withoutGlobalScopes() pour voir le couple même s'il appartient à un autre user
      */
     public function couple()
     {
-        return $this->belongsTo(\Modules\Couples\Models\Couple::class);
+        return $this->belongsTo(\Modules\Couples\Models\Couple::class)->withTrashed();
+    }
+
+    /**
+     * Relation : Les pigeonneaux issus de cette reproduction
+     * (via les parents du couple)
+     */
+    public function pigeonneaux()
+    {
+        if (!$this->couple) {
+            return collect([]);
+        }
+
+        return \Modules\Pigeons\Models\Pigeon::where('pere_id', $this->couple->male_id)
+            ->where('mere_id', $this->couple->femelle_id)
+            ->where('date_naissance', $this->date_eclosion)
+            ->get();
+    }
+
+    /**
+     * Accesseur : La reproduction est-elle modifiable ?
+     * RG-R18 : Modification interdite si ENREGISTRE ou ECHEC
+     */
+    public function getIsModifiableAttribute(): bool
+    {
+        return !in_array($this->statut, ['ENREGISTRE', 'ECHEC']);
+    }
+
+    /**
+     * Accesseur : La reproduction est-elle supprimable ?
+     * RG-R21 : Suppression interdite si ENREGISTRE
+     */
+    public function getIsDeletableAttribute(): bool
+    {
+        return $this->statut !== 'ENREGISTRE';
     }
 
     /**
      * Scope : Reproductions en cours (PONTE, ECLOSION, SEVRAGE)
      */
-    public function scopeEnCours($query)
+    public function scopeEnCours(\Illuminate\Database\Eloquent\Builder $query)
     {
         return $query->whereIn('statut', ['PONTE', 'ECLOSION', 'SEVRAGE']);
     }
@@ -73,7 +115,7 @@ class Reproduction extends Model
     /**
      * Scope : Reproductions terminées (ENREGISTRE, ECHEC)
      */
-    public function scopeTerminees($query)
+    public function scopeTerminees(\Illuminate\Database\Eloquent\Builder $query)
     {
         return $query->whereIn('statut', ['ENREGISTRE', 'ECHEC']);
     }
@@ -81,7 +123,7 @@ class Reproduction extends Model
     /**
      * Scope : Reproductions réussies (ENREGISTRE)
      */
-    public function scopeReussies($query)
+    public function scopeReussies(\Illuminate\Database\Eloquent\Builder $query)
     {
         return $query->where('statut', 'ENREGISTRE');
     }
@@ -89,7 +131,7 @@ class Reproduction extends Model
     /**
      * Scope : Reproductions échouées (ECHEC)
      */
-    public function scopeEchouees($query)
+    public function scopeEchouees(\Illuminate\Database\Eloquent\Builder $query)
     {
         return $query->where('statut', 'ECHEC');
     }
@@ -97,7 +139,7 @@ class Reproduction extends Model
     /**
      * Scope : Reproductions en phase de ponte
      */
-    public function scopePonte($query)
+    public function scopePonte(\Illuminate\Database\Eloquent\Builder $query)
     {
         return $query->where('statut', 'PONTE');
     }
@@ -105,7 +147,7 @@ class Reproduction extends Model
     /**
      * Scope : Reproductions en phase d'éclosion
      */
-    public function scopeEclosion($query)
+    public function scopeEclosion(\Illuminate\Database\Eloquent\Builder $query)
     {
         return $query->where('statut', 'ECLOSION');
     }
@@ -113,7 +155,7 @@ class Reproduction extends Model
     /**
      * Scope : Reproductions en phase de sevrage
      */
-    public function scopeSevrage($query)
+    public function scopeSevrage(\Illuminate\Database\Eloquent\Builder $query)
     {
         return $query->where('statut', 'SEVRAGE');
     }

@@ -62,7 +62,7 @@ class Sortie extends Model
     /**
      * Scope : Sorties de type VENTE
      */
-    public function scopeVentes($query)
+    public function scopeVentes(\Illuminate\Database\Eloquent\Builder $query)
     {
         return $query->where('type', 'VENTE');
     }
@@ -70,7 +70,7 @@ class Sortie extends Model
     /**
      * Scope : Sorties de type DECES
      */
-    public function scopeDeces($query)
+    public function scopeDeces(\Illuminate\Database\Eloquent\Builder $query)
     {
         return $query->where('type', 'DECES');
     }
@@ -78,7 +78,7 @@ class Sortie extends Model
     /**
      * Scope : Sorties de type PERTE
      */
-    public function scopePertes($query)
+    public function scopePertes(\Illuminate\Database\Eloquent\Builder $query)
     {
         return $query->where('type', 'PERTE');
     }
@@ -86,7 +86,7 @@ class Sortie extends Model
     /**
      * Scope : Sorties avec prix (ventes)
      */
-    public function scopeAvecPrix($query)
+    public function scopeAvecPrix(\Illuminate\Database\Eloquent\Builder $query)
     {
         return $query->whereNotNull('prix');
     }
@@ -94,7 +94,7 @@ class Sortie extends Model
     /**
      * Scope : Sorties par période
      */
-    public function scopeParPeriode($query, $dateDebut, $dateFin)
+    public function scopeParPeriode(\Illuminate\Database\Eloquent\Builder $query, string $dateDebut, string $dateFin)
     {
         return $query->whereBetween('date_sortie', [$dateDebut, $dateFin]);
     }

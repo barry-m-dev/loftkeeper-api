@@ -55,26 +55,29 @@ class Couple extends Model
 
     /**
      * Relation : Un couple a un mâle (pigeon)
+     * withoutGlobalScopes() pour voir le mâle même s'il appartient à un autre user
      */
     public function male()
     {
-        return $this->belongsTo(\Modules\Pigeons\Models\Pigeon::class, 'male_id');
+        return $this->belongsTo(\Modules\Pigeons\Models\Pigeon::class, 'male_id')->withTrashed();
     }
 
     /**
      * Relation : Un couple a une femelle (pigeon)
+     * withoutGlobalScopes() pour voir la femelle même si elle appartient à un autre user
      */
     public function femelle()
     {
-        return $this->belongsTo(\Modules\Pigeons\Models\Pigeon::class, 'femelle_id');
+        return $this->belongsTo(\Modules\Pigeons\Models\Pigeon::class, 'femelle_id')->withTrashed();
     }
 
     /**
      * Relation : Un couple peut être dans une cage
+     * withoutGlobalScopes() pour voir la cage même si elle appartient à un autre user
      */
     public function cage()
     {
-        return $this->belongsTo(\Modules\Cages\Models\Cage::class);
+        return $this->belongsTo(\Modules\Cages\Models\Cage::class)->withTrashed();
     }
 
     /**
@@ -96,7 +99,7 @@ class Couple extends Model
     /**
      * Scope : Couples actifs uniquement
      */
-    public function scopeActifs($query)
+    public function scopeActifs(\Illuminate\Database\Eloquent\Builder $query)
     {
         return $query->where('statut', 'ACTIF');
     }
@@ -104,7 +107,7 @@ class Couple extends Model
     /**
      * Scope : Couples rompus uniquement
      */
-    public function scopeRompus($query)
+    public function scopeRompus(\Illuminate\Database\Eloquent\Builder $query)
     {
         return $query->where('statut', 'ROMPU');
     }
@@ -112,7 +115,7 @@ class Couple extends Model
     /**
      * Scope : Couples avec cage
      */
-    public function scopeAvecCage($query)
+    public function scopeAvecCage(\Illuminate\Database\Eloquent\Builder $query)
     {
         return $query->whereNotNull('cage_id');
     }
@@ -120,7 +123,7 @@ class Couple extends Model
     /**
      * Scope : Couples sans cage
      */
-    public function scopeSansCage($query)
+    public function scopeSansCage(\Illuminate\Database\Eloquent\Builder $query)
     {
         return $query->whereNull('cage_id');
     }

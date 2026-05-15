@@ -7,17 +7,35 @@ use App\Http\Controllers\Controller;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Modules\Couples\Http\Requests\StoreCoupleRequest;
+use Modules\Couples\Http\Requests\UpdateCoupleRequest;
 use Modules\Couples\Http\Resources\CoupleResource;
 use Modules\Couples\Models\Couple;
+use Modules\Couples\Services\CoupleService;
+use Modules\Pigeons\Http\Resources\PigeonResource;
+use Modules\Cages\Http\Resources\CageResource;
 
 /**
  * Controller pour la gestion des couples
+ * Orchestrateur - Délègue la logique métier au CoupleService
  * 
  * @package Modules\Couples\Http\Controllers\Api
  */
 class CoupleController extends Controller
 {
   use ApiResponse, AuthorizesRequests;
+
+  protected CoupleService $coupleService;
+
+  /**
+   * Constructeur
+   * 
+   * @param CoupleService $coupleService
+   */
+  public function __construct(CoupleService $coupleService)
+  {
+    $this->coupleService = $coupleService;
+  }
 
   /**
    * Liste des couples avec filtres
@@ -28,36 +46,9 @@ class CoupleController extends Controller
   public function index(Request $request): JsonResponse
   {
     try {
-      $query = Couple::query()
-        ->with(['male', 'femelle', 'cage'])
-        ->where('user_id', auth()->id());
-
-      // Filtre par statut
-      if ($request->has('statut')) {
-        $query->where('statut', $request->statut);
-
-        // Si on demande les couples ACTIFS, filtrer aussi ceux sans cage
-        if ($request->statut === 'ACTIF') {
-          $query->whereNull('cage_id');
-        }
-      }
-
-      // Recherche par code
-      if ($request->has('search')) {
-        $search = $request->search;
-        $query->where('code', 'like', "%{$search}%");
-      }
-
-      $couples = $query->orderBy('created_at', 'desc')->get();
-
-      // Calculer les stats
-      $stats = [
-        'total' => $couples->count(),
-        'actifs' => $couples->where('statut', 'ACTIF')->count(),
-        'rompus' => $couples->where('statut', 'ROMPU')->count(),
-        'avec_cage' => $couples->whereNotNull('cage_id')->count(),
-        'sans_cage' => $couples->whereNull('cage_id')->count(),
-      ];
+      $filters = $request->only(['statut', 'avec_cage', 'search']);
+      $couples = $this->coupleService->getAllCouples($filters);
+      $stats = $this->coupleService->getStats($couples, auth()->id());
 
       return $this->success([
         'data' => CoupleResource::collection($couples)->resolve(),
@@ -109,26 +100,30 @@ class CoupleController extends Controller
   /**
    * Créer un couple
    * 
-   * @param Request $request
+   * @param StoreCoupleRequest $request
    * @return JsonResponse
    */
-  public function store(Request $request): JsonResponse
+  public function store(StoreCoupleRequest $request): JsonResponse
   {
     try {
-      $validated = $request->validate([
-        'male_uuid' => 'required|string|exists:pigeons,uuid',
-        'femelle_uuid' => 'required|string|exists:pigeons,uuid',
-        'cage_uuid' => 'nullable|string|exists:cages,uuid',
-        'date_formation' => 'nullable|date',
-        'notes' => 'nullable|string',
-      ]);
+      $couple = $this->coupleService->createCouple(
+        $request->validated(),
+        auth()->id()
+      );
 
-      // TODO: Implémenter la logique de création via un service
-      return $this->error('Fonctionnalité en cours de développement', 501);
+      return $this->success(
+        new CoupleResource($couple),
+        'Couple créé avec succès',
+        201
+      );
     } catch (\Exception $e) {
+      \Log::error('Erreur création couple', [
+        'message' => $e->getMessage(),
+        'trace' => $e->getTraceAsString(),
+      ]);
       return $this->error(
-        'Erreur lors de la création du couple: ' . substr($e->getMessage(), 0, 300),
-        500
+        $e->getMessage(),
+        422
       );
     }
   }
@@ -136,25 +131,36 @@ class CoupleController extends Controller
   /**
    * Modifier un couple
    * 
-   * @param Request $request
+   * @param UpdateCoupleRequest $request
    * @param string $uuid
    * @return JsonResponse
    */
-  public function update(Request $request, string $uuid): JsonResponse
+  public function update(UpdateCoupleRequest $request, string $uuid): JsonResponse
   {
     try {
       $couple = Couple::where('uuid', $uuid)
         ->where('user_id', auth()->id())
         ->firstOrFail();
 
-      // TODO: Implémenter la logique de modification via un service
-      return $this->error('Fonctionnalité en cours de développement', 501);
+      $updatedCouple = $this->coupleService->updateCouple(
+        $couple,
+        $request->validated()
+      );
+
+      return $this->success(
+        new CoupleResource($updatedCouple),
+        'Couple mis à jour avec succès'
+      );
     } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
       return $this->error('Couple non trouvé', 404);
     } catch (\Exception $e) {
+      \Log::error('Erreur update couple', [
+        'uuid' => $uuid,
+        'message' => $e->getMessage(),
+      ]);
       return $this->error(
-        'Erreur lors de la mise à jour du couple: ' . substr($e->getMessage(), 0, 300),
-        500
+        $e->getMessage(),
+        422
       );
     }
   }
@@ -172,14 +178,19 @@ class CoupleController extends Controller
         ->where('user_id', auth()->id())
         ->firstOrFail();
 
-      // TODO: Implémenter la logique de suppression via un service
-      return $this->error('Fonctionnalité en cours de développement', 501);
+      $this->coupleService->deleteCouple($couple);
+
+      return $this->success(null, 'Couple supprimé avec succès');
     } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
       return $this->error('Couple non trouvé', 404);
     } catch (\Exception $e) {
+      \Log::error('Erreur delete couple', [
+        'uuid' => $uuid,
+        'message' => $e->getMessage(),
+      ]);
       return $this->error(
-        'Erreur lors de la suppression du couple: ' . substr($e->getMessage(), 0, 300),
-        500
+        $e->getMessage(),
+        422
       );
     }
   }
@@ -197,13 +208,99 @@ class CoupleController extends Controller
         ->where('user_id', auth()->id())
         ->firstOrFail();
 
-      // TODO: Implémenter la logique de rupture via un service
-      return $this->error('Fonctionnalité en cours de développement', 501);
+      $rompu = $this->coupleService->rompre($couple);
+
+      return $this->success(
+        new CoupleResource($rompu),
+        'Couple rompu avec succès'
+      );
     } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
       return $this->error('Couple non trouvé', 404);
     } catch (\Exception $e) {
+      \Log::error('Erreur rupture couple', [
+        'uuid' => $uuid,
+        'message' => $e->getMessage(),
+      ]);
       return $this->error(
-        'Erreur lors de la rupture du couple: ' . substr($e->getMessage(), 0, 300),
+        $e->getMessage(),
+        422
+      );
+    }
+  }
+
+  /**
+   * Mâles disponibles pour couple
+   * 
+   * @return JsonResponse
+   */
+  public function malesDisponibles(): JsonResponse
+  {
+    try {
+      $males = $this->coupleService->getMalesDisponibles(auth()->id());
+
+      return $this->success([
+        'data' => PigeonResource::collection($males)->resolve(),
+      ]);
+    } catch (\Exception $e) {
+      \Log::error('Erreur males disponibles', [
+        'message' => $e->getMessage(),
+      ]);
+      return $this->error(
+        'Erreur lors de la récupération des mâles disponibles',
+        500
+      );
+    }
+  }
+
+  /**
+   * Femelles disponibles pour couple
+   * 
+   * @return JsonResponse
+   */
+  public function femellesDisponibles(): JsonResponse
+  {
+    try {
+      $femelles = $this->coupleService->getFemellesDisponibles(auth()->id());
+
+      return $this->success([
+        'data' => PigeonResource::collection($femelles)->resolve(),
+      ]);
+    } catch (\Exception $e) {
+      \Log::error('Erreur femelles disponibles', [
+        'message' => $e->getMessage(),
+      ]);
+      return $this->error(
+        'Erreur lors de la récupération des femelles disponibles',
+        500
+      );
+    }
+  }
+
+  /**
+   * Historique des reproductions d'un couple
+   * 
+   * @param string $uuid
+   * @return JsonResponse
+   */
+  public function reproductions(string $uuid): JsonResponse
+  {
+    try {
+      $couple = Couple::where('uuid', $uuid)
+        ->where('user_id', auth()->id())
+        ->firstOrFail();
+
+      $historique = $this->coupleService->getReproductionsHistorique($couple);
+
+      return $this->success($historique);
+    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+      return $this->error('Couple non trouvé', 404);
+    } catch (\Exception $e) {
+      \Log::error('Erreur reproductions couple', [
+        'uuid' => $uuid,
+        'message' => $e->getMessage(),
+      ]);
+      return $this->error(
+        'Erreur lors de la récupération des reproductions',
         500
       );
     }

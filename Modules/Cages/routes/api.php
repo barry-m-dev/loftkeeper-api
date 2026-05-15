@@ -13,6 +13,7 @@ Route::middleware(['auth:sanctum'])->prefix('v1')->group(function () {
     Route::prefix('cages')->group(function () {
         Route::get('/', [CageController::class, 'index'])->name('cages.index');
         Route::get('/grille', [CageController::class, 'grille'])->name('cages.grille');
+        Route::get('/couples-disponibles', [CageController::class, 'couplesDisponibles'])->name('cages.couples-disponibles');
         Route::post('/', [CageController::class, 'store'])->name('cages.store');
         Route::get('/{uuid}', [CageController::class, 'show'])->name('cages.show');
         Route::put('/{uuid}', [CageController::class, 'update'])->name('cages.update');

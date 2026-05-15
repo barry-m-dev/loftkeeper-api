@@ -73,6 +73,7 @@ class CageResource extends JsonResource
         'label' => $this->couple->code ?? 'Couple',
         'detail' => "{$maleLabel} × {$femelleLabel}",
         'photo_url' => null,
+        'couple_data' => new \Modules\Couples\Http\Resources\CoupleResource($this->couple),
       ];
     }
 

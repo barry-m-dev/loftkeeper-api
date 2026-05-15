@@ -44,7 +44,7 @@ class CageService
       });
     }
 
-    return $query->with(['pigeon', 'couple.male', 'couple.femelle'])
+    return $query->with(['pigeon', 'couple.male', 'couple.femelle', 'couple.reproductions'])
       ->orderBy('numero')
       ->get();
   }

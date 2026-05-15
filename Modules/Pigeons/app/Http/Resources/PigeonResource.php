@@ -76,11 +76,15 @@ class PigeonResource extends JsonResource
               'uuid' => $couple->male->uuid,
               'bague' => $couple->male->bague,
               'nom' => $couple->male->nom,
+              'photo' => $couple->male->photo,
+              'photo_url' => $couple->male->photo_url,
             ] : null,
             'femelle' => $couple->femelle ? [
               'uuid' => $couple->femelle->uuid,
               'bague' => $couple->femelle->bague,
               'nom' => $couple->femelle->nom,
+              'photo' => $couple->femelle->photo,
+              'photo_url' => $couple->femelle->photo_url,
             ] : null,
           ] : null;
         }

@@ -118,6 +118,17 @@ class Cage extends Model
     }
 
     /**
+     * Scope : Cages disponibles pour affectation (LIBRE)
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeDisponiblesPourAffectation($query)
+    {
+        return $query->where('statut', 'LIBRE');
+    }
+
+    /**
      * Vérifie si la cage est libre
      * 
      * @return bool

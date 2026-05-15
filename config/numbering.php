@@ -35,9 +35,9 @@ return [
   ],
 
   'couple' => [
-    'prefix' => 'CP',
-    'digits' => 3,
-    'max'    => 999,
+    'prefix' => 'C',
+    'digits' => 4,
+    'max'    => 9999,
     'model'  => \Modules\Couples\Models\Couple::class,
     'column' => 'code',
   ],

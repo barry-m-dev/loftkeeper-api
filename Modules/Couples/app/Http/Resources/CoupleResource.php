@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Modules\Cages\Http\Resources\CageResource;
 use Modules\Pigeons\Http\Resources\PigeonResource;
+use Modules\Reproductions\Http\Resources\ReproductionResource;
 
 /**
  * Sérialisation JSON des couples (même schéma que PigeonResource pour les pigeons imbriqués : photo / photo_url).
@@ -32,9 +33,17 @@ class CoupleResource extends JsonResource
       'femelle' => new PigeonResource($this->whenLoaded('femelle')),
       'cage' => $this->when(
         $this->relationLoaded('cage'),
-        fn () => $this->cage ? new CageResource($this->cage) : null
+        fn() => $this->cage ? new CageResource($this->cage) : null
       ),
-      'reproductions' => $this->whenLoaded('reproductions'),
+      'reproductions_historique' => $this->whenLoaded('reproductions', function () {
+        return [
+          'total_pontes' => $this->reproductions->count(),
+          'total_eclosions' => $this->reproductions->whereIn('statut', ['ECLOSION', 'SEVRAGE', 'ENREGISTRE'])->count(),
+          'total_pigeonneaux' => $this->reproductions->sum('nb_pigeonneaux'),
+          'total_echecs' => $this->reproductions->where('statut', 'ECHEC')->count(),
+          'reproductions' => ReproductionResource::collection($this->reproductions),
+        ];
+      }),
       'created_at' => $this->created_at->format('Y-m-d H:i:s'),
       'updated_at' => $this->updated_at->format('Y-m-d H:i:s'),
     ];

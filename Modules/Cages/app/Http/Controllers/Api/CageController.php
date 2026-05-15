@@ -127,7 +127,7 @@ class CageController extends Controller
   {
     try {
       $cage = Cage::where('uuid', $uuid)
-        ->with(['pigeon', 'couple.male', 'couple.femelle'])
+        ->with(['pigeon', 'couple.male', 'couple.femelle', 'couple.reproductions'])
         ->firstOrFail();
 
       return $this->success(new CageResource($cage));
@@ -297,6 +297,55 @@ class CageController extends Controller
       return $this->error(
         substr($e->getMessage(), 0, 300),
         422
+      );
+    }
+  }
+
+  /**
+   * Récupérer les couples disponibles pour affectation à une cage
+   * Retourne uniquement les couples ACTIFS sans cage
+   * 
+   * @param Request $request
+   * @return JsonResponse
+   */
+  public function couplesDisponibles(Request $request): JsonResponse
+  {
+    try {
+      // UUID de la cage en cours d'édition (optionnel)
+      $cageUuid = $request->query('cage_uuid');
+      $cageId = null;
+
+      if ($cageUuid) {
+        $cage = Cage::where('uuid', $cageUuid)
+          ->where('user_id', auth()->id())
+          ->first();
+        $cageId = $cage?->id;
+      }
+
+      // Récupérer les couples disponibles
+      $couples = Couple::where('user_id', auth()->id())
+        ->where('statut', 'ACTIF')
+        ->where(function ($query) use ($cageId) {
+          $query->whereNull('cage_id');
+          // En mode édition, inclure le couple actuellement affecté à cette cage
+          if ($cageId) {
+            $query->orWhere('cage_id', $cageId);
+          }
+        })
+        ->with(['male', 'femelle'])
+        ->orderBy('code', 'asc')
+        ->get();
+
+      return $this->success([
+        'data' => \Modules\Couples\Http\Resources\CoupleResource::collection($couples)->resolve(),
+      ]);
+    } catch (\Exception $e) {
+      \Log::error('Erreur couples disponibles', [
+        'message' => $e->getMessage(),
+      ]);
+      return $this->error(
+        'Erreur lors de la récupération des couples disponibles',
+        500
       );
     }
   }
